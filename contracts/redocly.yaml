@@ -1,0 +1,6 @@
+extends:
+  - recommended
+rules:
+  no-server-example.com: off
+  # GET /healthz is a Tenantly liveness route with no error case, so it has no 4XX response.
+  operation-4xx-response: off

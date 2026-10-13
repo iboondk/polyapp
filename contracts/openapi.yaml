@@ -1,0 +1,375 @@
+openapi: 3.1.0
+info:
+  title: PolyApp API
+  version: 0.1.0
+  summary: Tenant and project API that mirrors the Tenantly HTTP surface.
+  description: |
+    PolyApp exposes the Tenantly routes that PolyApp clients use, plus the
+    inbound `projectRequested` webhook that the webhook adapter accepts.
+    OAuth and GraphQL routes in Tenantly are intentionally left out.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://127.0.0.1:4010
+    description: Local mock API (or a local Tenantly server)
+tags:
+  - name: Health
+    description: Liveness probe.
+  - name: Auth
+    description: Development-only token issuing.
+  - name: Tenants
+    description: Tenant management.
+  - name: Projects
+    description: Projects inside a tenant.
+  - name: Webhooks
+    description: Inbound webhook events sent to PolyApp.
+security:
+  - bearerAuth: []
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      tags: [Health]
+      summary: Report service health.
+      security: []
+      responses:
+        "200":
+          description: The service is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /v1/auth/dev-token:
+    post:
+      operationId: createDevToken
+      tags: [Auth]
+      summary: Issue a development bearer token for an email address.
+      description: Development only. Do not expose this route in production.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevTokenRequest"
+      responses:
+        "200":
+          description: A bearer token was issued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Token"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/tenants:
+    post:
+      operationId: createTenant
+      tags: [Tenants]
+      summary: Create a tenant. The caller becomes its owner.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTenantRequest"
+      responses:
+        "201":
+          description: The tenant was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/tenants/{tenantId}/projects:
+    parameters:
+      - $ref: "#/components/parameters/TenantId"
+    get:
+      operationId: listProjects
+      tags: [Projects]
+      summary: List the projects of a tenant, newest first.
+      responses:
+        "200":
+          description: The projects of the tenant.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    post:
+      operationId: createProject
+      tags: [Projects]
+      summary: Create a project in a tenant. Requires the admin or owner role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectRequest"
+      responses:
+        "201":
+          description: The project was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/tenants/{tenantId}/projects/{projectId}:
+    parameters:
+      - $ref: "#/components/parameters/TenantId"
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      operationId: getProject
+      tags: [Projects]
+      summary: Get one project of a tenant.
+      responses:
+        "200":
+          description: The project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+webhooks:
+  projectRequested:
+    post:
+      operationId: receiveProjectRequested
+      tags: [Webhooks]
+      summary: Receive a project.requested event signed with the webhook secret.
+      description: |
+        The signature is the hex HMAC-SHA256 of the raw request body, keyed by
+        the webhook secret, prefixed with `sha256=`.
+      security: []
+      parameters:
+        - name: X-PolyApp-Signature
+          in: header
+          required: true
+          description: "`sha256=` followed by the hex HMAC-SHA256 of the raw body."
+          schema:
+            type: string
+            pattern: "^sha256=[0-9a-f]{64}$"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectRequestedEvent"
+      responses:
+        "202":
+          description: The event was accepted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          description: The event body failed validation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TenantId:
+      name: tenantId
+      in: path
+      required: true
+      description: The tenant identifier.
+      schema:
+        type: string
+        format: uuid
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      description: The project identifier.
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+      additionalProperties: false
+    DevTokenRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+      additionalProperties: false
+    Token:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+      additionalProperties: false
+    CreateTenantRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+      additionalProperties: false
+    Tenant:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+      additionalProperties: false
+    CreateProjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+      additionalProperties: false
+    Project:
+      type: object
+      required: [id, tenant_id, name, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        created_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+    ProjectList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Project"
+      additionalProperties: false
+    ProjectRequestedEvent:
+      type: object
+      required: [id, type, created_at, tenant_id, data]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          const: project.requested
+        created_at:
+          type: string
+          format: date-time
+        tenant_id:
+          type: string
+          format: uuid
+        data:
+          type: object
+          required: [name]
+          properties:
+            name:
+              type: string
+              minLength: 1
+              maxLength: 200
+          additionalProperties: false
+      additionalProperties: false
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      additionalProperties: false
+  responses:
+    BadRequest:
+      description: The request body or parameters are invalid (invalid_request).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: The bearer token is missing or unknown (unauthorized).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: The caller's role is too low for this operation (forbidden).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: The resource does not exist or the caller is not a member (not_found).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: A resource with the same name already exists (conflict).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    RateLimited:
+      description: Too many requests (rate_limited).
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

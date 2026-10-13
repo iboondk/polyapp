@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolyApp projects widget demo</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 1rem;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>PolyApp projects widget</h1>
+    <p>Replace the placeholder attributes with your API URL, a token and a tenant id.</p>
+    <polyapp-projects
+      api-url="http://127.0.0.1:4010"
+      token="YOUR_TOKEN"
+      tenant-id="YOUR_TENANT_ID"
+      limit="5"
+      heading="Latest projects"
+    ></polyapp-projects>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

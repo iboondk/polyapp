@@ -1,0 +1,31 @@
+{
+  "name": "@polyapp/widget-vue",
+  "version": "0.1.0",
+  "description": "Embeddable <polyapp-projects> Vue custom element that lists a tenant's latest projects.",
+  "license": "MIT",
+  "author": "iboondk",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@polyapp/api-client": "workspace:*",
+    "vue": "3.5.43"
+  },
+  "devDependencies": {
+    "@polyapp/mock-api": "workspace:*",
+    "@vitejs/plugin-vue": "6.0.10",
+    "@vue/test-utils": "2.5.1",
+    "happy-dom": "20.14.6",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.3",
+    "vue-tsc": "3.3.11"
+  }
+}

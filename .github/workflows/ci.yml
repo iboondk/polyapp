@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  npm_config_cache: ${{ github.workspace }}/.npm-cache
+
+jobs:
+  workspace:
+    name: Spec, client, mock API, web and mobile tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.18.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint the OpenAPI spec
+        run: pnpm lint:spec
+
+      - name: Regenerate client types and fail on drift
+        run: |
+          pnpm gen
+          git diff --exit-code -- packages/api-client/src/generated/schema.d.ts
+
+      - name: Build the API client
+        run: pnpm build:client
+
+      - name: Mock API tests
+        run: pnpm test:mock
+
+      - name: API client tests (against the mock API)
+        run: pnpm --filter @polyapp/api-client test
+
+      - name: Widget tests
+        run: pnpm --filter @polyapp/widget-vue test
+
+      - name: Storefront tests
+        run: pnpm --filter @polyapp/storefront-next test
+
+      - name: Admin (Angular) tests
+        run: pnpm --filter @polyapp/admin-angular exec ng test --watch=false
+
+      - name: Admin (Angular) build
+        run: pnpm --filter @polyapp/admin-angular build
+
+      - name: Storefront production build
+        run: pnpm --filter @polyapp/storefront-next build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+      - name: Mobile tests (standalone npm project)
+        working-directory: apps/mobile-expo
+        run: |
+          npm ci
+          npm test
+
+  laravel-adapter:
+    name: Laravel webhook adapter (PHPUnit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: composer
+
+      - name: Install adapter dependencies
+        working-directory: apps/webhook-laravel
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPUnit
+        working-directory: apps/webhook-laravel
+        run: vendor/bin/phpunit

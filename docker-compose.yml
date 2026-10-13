@@ -1,0 +1,22 @@
+# Runs the local PolyApp mock API (mock-api/) in a container.
+# The mock is a test double for Tenantly. It is not Tenantly itself.
+# No real credentials are used. The mock needs no secrets, and compose does not load .env.
+services:
+  mock-api:
+    image: node:24-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app:ro
+    # The server binds 0.0.0.0 inside the container. The host port stays on loopback only.
+    command:
+      - node
+      - -e
+      - "import('file:///app/mock-api/server.mjs').then((m) => m.createMockServer({ port: 4010, host: '0.0.0.0' })).then((s) => console.log('mock-api listening at', s.url))"
+    ports:
+      - "127.0.0.1:4010:4010"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4010/healthz').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped

@@ -1,0 +1,17 @@
+{
+  "name": "polyapp",
+  "private": true,
+  "license": "MIT",
+  "author": "iboondk",
+  "packageManager": "pnpm@11.18.0",
+  "scripts": {
+    "lint:spec": "redocly lint contracts/openapi.yaml --config contracts/redocly.yaml",
+    "gen": "pnpm --filter @polyapp/api-client gen",
+    "build:client": "pnpm --filter @polyapp/api-client build",
+    "test:mock": "node --test mock-api/server.test.mjs",
+    "demo": "bash scripts/demo.sh"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.62.1"
+  }
+}

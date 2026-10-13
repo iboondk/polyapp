@@ -1,0 +1,30 @@
+{
+  "name": "@polyapp/storefront-next",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Next.js storefront: the public catalog of one PolyApp tenant's projects.",
+  "license": "MIT",
+  "author": "iboondk",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@polyapp/api-client": "workspace:*",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@polyapp/mock-api": "workspace:*",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3"
+  }
+}

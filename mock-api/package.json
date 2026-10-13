@@ -1,0 +1,11 @@
+{
+  "name": "@polyapp/mock-api",
+  "private": true,
+  "type": "module",
+  "main": "server.mjs",
+  "exports": "./server.mjs",
+  "scripts": {
+    "start": "node server.mjs --port 4010",
+    "test": "node --test"
+  }
+}

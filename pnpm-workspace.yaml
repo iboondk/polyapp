@@ -1,0 +1,11 @@
+packages:
+  - packages/*
+  - mock-api
+  - apps/storefront-next
+  - apps/admin-angular
+  - apps/widget-vue
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
